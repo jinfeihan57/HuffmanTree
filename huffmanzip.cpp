@@ -162,8 +162,8 @@ int *FreqCount(unsigned char *ptr, size_t size){
  *@return 返回存贮 symbol节点路径的数组指针，需要外部delete
  */
 int *FindSymbolList(unsigned char symbol, Element ht[]){
-    int *symbolList = new int[SYMBOLES];        // 为记录symbol的路径分配空间 256中symbol最大深度不会超过256
-    for(int i = 0; i < SYMBOLES; i++){   // 将内存初始化为不可能的 -1 
+    int *symbolList = new int[SYMBOLES + 1];        // 为记录symbol的路径分配空间 256中symbol最大深度不会超过256
+    for(int i = 0; i < SYMBOLES + 1; i++){   // 将内存初始化为不可能的 -1 
         symbolList[i] = -1;
     } 
     int tmp = symbol;
@@ -184,7 +184,7 @@ int *FindSymbolList(unsigned char symbol, Element ht[]){
  *@fd  输出的文件描述符
  *@return 返回统计后的记录结果的内存指针，需要外部delete
  */
-unsigned char *OutBinaryData(int *symbolList, Element ht[], FILE *fd){
+unsigned char *OutBinaryData(int *symbolList, Element ht[], FILE *fd, int lastFlag){
     int i = 0;
     for(i = 0; symbolList[i] != -1; i++){       // 找到最后一个节点
         if(i > 255){
@@ -197,25 +197,34 @@ unsigned char *OutBinaryData(int *symbolList, Element ht[], FILE *fd){
     int treeNodeIndex = 510;
     while(true){
         if(ht[treeNodeIndex].lchild == symbolList[i-1]){
-            std::cout << "0" ;
+            //std::cout << "0" ;
             byteSize++;
         }
         if(ht[treeNodeIndex].rchild == symbolList[i-1]){
-            std::cout << "1  " ;
-            outByte = outByte | (0x01 << byteSize);
+            //std::cout << "1" ;
+            outByte = outByte | (0x80 >> (byteSize));
             byteSize++;
         }
         if(byteSize == 8){
-            printf("0x%x  ",outByte);
+            //printf("0x%x  ",outByte);
             fwrite(&outByte, 1, 1, fd);
             byteSize = 0;
             outByte = 0;
         }
-        if((ht[symbolList[i-1]].lchild == -1) && (ht[symbolList[i-1]].rchild == -1)) break;
+        if((ht[symbolList[i-1]].lchild == -1) && (ht[symbolList[i-1]].rchild == -1)){
+            break;
+        }
         treeNodeIndex = symbolList[i-1];
         i--;
     }
-    std::cout << std::endl;
+    if(lastFlag){
+        if(byteSize != 0){
+            //std::cout << "############" <<std::endl;
+            //printf("0x%x  ",outByte);
+            fwrite(&outByte, 1, 1, fd);
+        }
+    }
+    //std::cout << std::endl;
     return NULL;
 }
 
@@ -224,20 +233,76 @@ unsigned char *OutBinaryData(int *symbolList, Element ht[], FILE *fd){
  *@size  待压缩的文件名
  *@outFileName  输出的文件名
  *@ht  Huffman树
- *@return 返回统计后的记录结果的内存指针，需要外部delete
+ *@return 
  */
 int HuffmanWrite2File(unsigned char *ptr, int size, char *outFileName, Element ht[]){
-    FILE *fd = fopen(outFileName, "wb");
+    FILE *fd = fopen(outFileName, "wb+");
     if (!fd) {
         fprintf(stderr, "failed to open file %s\n", outFileName);
         exit(1);
     }
     for(int i = 0; i < size; i++){
         int *symbolList = FindSymbolList(ptr[i], ht);
-        OutBinaryData(symbolList, ht, fd);
+        if(i != size - 1){
+            OutBinaryData(symbolList, ht, fd, 0);
+        }else{
+            OutBinaryData(symbolList, ht, fd, 1);
+        }
         delete [] symbolList;
     }
     fclose(fd);
+    return 0;
+}
+
+/*@description 解编码的Huffman文件
+ *@ptr Huffman编码压缩文件的内存空间（仅仅包好Huffman码，不包含概率表）
+ *@size  解压后的文件的大小
+ *@outFileName  解压缩后输出的文件名
+ *@ht  Huffman树（由概率表创建）
+ *@return 
+ */
+int DecodeHuffmanFile2File(unsigned char *ptr, int insize, int outFileSize, char *outFileName, Element ht[]){
+    FILE *fd = fopen(outFileName, "wb+");
+    if (!fd) {
+        fprintf(stderr, "failed to open file %s\n", outFileName);
+        exit(1);
+    }
+    static int byteSize = 0;
+    unsigned char inByte = ptr[0];
+    int leftrightFlag = 0;
+    int treeRootIndex = 510;
+    int outSize = 0;
+    for(int i = 0; i < insize;){
+
+        leftrightFlag = inByte & 0x80;
+        //std::cout << leftrightFlag << std::endl;
+        inByte = inByte << 1;
+        byteSize++;
+
+        if(leftrightFlag ){
+            treeRootIndex = ht[treeRootIndex].rchild;
+        }else{
+            treeRootIndex = ht[treeRootIndex].lchild;
+        }
+        if((ht[treeRootIndex].lchild == -1) && (ht[treeRootIndex].rchild == -1)){
+            unsigned char tmp = (unsigned char)treeRootIndex;
+            fwrite(&tmp, 1, 1, fd);
+            //std::cout << "treeRootIndex   " << treeRootIndex << std::endl;
+            treeRootIndex = 510;
+            outSize++;
+            if(outSize == outFileSize){
+                break;
+            }
+        }
+        if(byteSize == 8){
+            byteSize = 0;
+            i++;
+            inByte = ptr[i];
+            //printf("inByte  0x%x\n",inByte);
+        }
+    }
+    fclose(fd);
+    return 0;
 }
 
 int main(int argc, char *argv[])
@@ -255,6 +320,11 @@ int main(int argc, char *argv[])
     // OutBinaryData(symbolList, hufftree, NULL);
 
     HuffmanWrite2File(ptr, fileSize, argv[2], hufftree);
+
+    unsigned char *ptrdecode = NULL;
+    size_t decodefileSize = read_file(argv[2], &ptrdecode);
+
+    DecodeHuffmanFile2File(ptrdecode, decodefileSize, fileSize, "xxxx.txt", hufftree);
     //使用过的内存需要释放
     // delete [] symbolList;
     delete [] hufftree;
