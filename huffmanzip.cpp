@@ -70,7 +70,7 @@ void HuffTree(Element ht[], int w[], int n)
         ht[i].rchild=-1;
         ht[i].weight=0;
     }
-    for(int i=0;i<n;i++)//构造huffman树的所有叶子节点
+    for(int i=0;i<n;i++)//构造huffman树的所有叶子节点  叶子结点均在前256 即 0-255
     {
         ht[i].weight=w[i];
     }
@@ -90,7 +90,7 @@ void Print(Element ht[],int n)
 {
     cout<<"index weight parent lchild rchild"<<endl;
     cout<<left;//左对齐输出
-    for(int i=0;i<n;i++)
+    for(int i=0; i < n; i++)
     {
         cout<<setw(5)<<i<<" ";
         cout<<setw(6)<<ht[i].weight<<" ";
@@ -146,7 +146,8 @@ int *FreqCount(unsigned char *ptr, size_t size){
         return NULL;
     }
     memset(freqCountBuf, 0, SYMBOLES * sizeof(int));
-    for(int i = 0; i < size; i++){
+    for(int i
+    ; i < size; i++){
         freqCountBuf[ptr[i]]++; 
     }
     // for(int i = 0; i < 256; i++){
@@ -155,20 +156,91 @@ int *FreqCount(unsigned char *ptr, size_t size){
     return freqCountBuf;
 }
 
+/*@description 在Huffman树中找到对应symbol的节点路径将节点以数组形式输出
+ *@symbol 指定的symbol 
+ *@ht  Huffman树
+ *@return 返回存贮 symbol节点路径的数组指针，需要外部delete
+ */
+int *FindSymbolList(unsigned char symbol, Element ht[]){
+    int *symbolList = new int[SYMBOLES];        // 为记录symbol的路径分配空间 256中symbol最大深度不会超过256
+    for(int i = 0; i < SYMBOLES; i++){   // 将内存初始化为不可能的 -1 
+        symbolList[i] = -1;
+    } 
+    int tmp = symbol;
+    for(int i = 0 ; ht[tmp].parent != -1; i++){
+        symbolList[i] = tmp;
+        tmp =  ht[tmp].parent;
+    }
+    // for(int j = 0; symbolList[j] != -1; j++){
+    //     std::cout << symbolList[j] << "   ";
+    // }
+    // std::cout << endl;
+    return symbolList;
+}
+
+/*@description 根据symbolList和ht 输出symbol的Huffman编码
+ *@symbolList 记录symbol在ht中的节点路径的数组
+ *@ht  Huffman树
+ *@fd  输出的文件描述符
+ *@return 返回统计后的记录结果的内存指针，需要外部delete
+ */
+unsigned char *OutBinaryData(int *symbolList, Element ht[], FILE *fd){
+    int i = 0;
+    for(i = 0; symbolList[i] != -1; i++){       // 找到最后一个节点
+        if(i > 255){
+            std::cout << "Shoudn't GO This Way! Something definitely wrong!" << std::endl;
+            break;
+        }
+    }
+    int treeNodeIndex = 510;
+    while(true){
+        if(ht[treeNodeIndex].lchild == symbolList[i-1]){
+            std::cout << "0" ;
+        }
+        if(ht[treeNodeIndex].rchild == symbolList[i-1]){
+            std::cout << "1" ;
+        }
+        if((ht[symbolList[i-1]].lchild == -1) && (ht[symbolList[i-1]].rchild == -1)) break;
+        treeNodeIndex = symbolList[i-1];
+        i--;
+    }
+    std::cout << std::endl;
+    return NULL;
+}
+
+/*@description 将ptr指向的内容根据ht Huffman树进行编码输出到outFileName文件中
+ *@ptr 待压缩文件的内存空间
+ *@size  待压缩的文件名
+ *@outFileName  输出的文件名
+ *@ht  Huffman树
+ *@return 返回统计后的记录结果的内存指针，需要外部delete
+ */
+int HuffmanWrite2File(unsigned char *ptr, int size, char *outFileName, Element ht[]){
+    for(int i = 0; i < size; i++){
+        int *symbolList = FindSymbolList(ptr[i], ht);
+        OutBinaryData(symbolList, ht, NULL);
+        delete [] symbolList;
+    }
+}
+
 int main(int argc, char *argv[])
 {
     unsigned char *ptr = NULL;
     size_t fileSize = read_file(argv[1], &ptr);
     int *freqCountBuf = FreqCount(ptr, fileSize);
-    int x[]={5,29,7,8,14,23,3,11};//权值的集合
-    // Element *hufftree=new Element[8*2-1];
-    // HuffTree(hufftree,x,8);
-    // Print(hufftree,8*2);
+   
     Element *hufftree=new Element[SYMBOLES*2-1];//动态创建数组
     HuffTree(hufftree,freqCountBuf,SYMBOLES);
     Print(hufftree,SYMBOLES*2-1);
+    std::cout << "*************************************" << std::endl;
 
+    // int *symbolList = FindSymbolList('a', hufftree);
+    // OutBinaryData(symbolList, hufftree, NULL);
+
+    HuffmanWrite2File(ptr, fileSize, NULL, hufftree);
     //使用过的内存需要释放
+    // delete [] symbolList;
+    delete [] hufftree;
     free(ptr);
     free(freqCountBuf);
     return 0;
