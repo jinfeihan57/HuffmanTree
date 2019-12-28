@@ -192,13 +192,24 @@ unsigned char *OutBinaryData(int *symbolList, Element ht[], FILE *fd){
             break;
         }
     }
+    static int byteSize = 0;
+    static unsigned char outByte = 0;
     int treeNodeIndex = 510;
     while(true){
         if(ht[treeNodeIndex].lchild == symbolList[i-1]){
             std::cout << "0" ;
+            byteSize++;
         }
         if(ht[treeNodeIndex].rchild == symbolList[i-1]){
-            std::cout << "1" ;
+            std::cout << "1  " ;
+            outByte = outByte | (0x01 << byteSize);
+            byteSize++;
+        }
+        if(byteSize == 8){
+            printf("0x%x  ",outByte);
+            fwrite(&outByte, 1, 1, fd);
+            byteSize = 0;
+            outByte = 0;
         }
         if((ht[symbolList[i-1]].lchild == -1) && (ht[symbolList[i-1]].rchild == -1)) break;
         treeNodeIndex = symbolList[i-1];
@@ -216,11 +227,17 @@ unsigned char *OutBinaryData(int *symbolList, Element ht[], FILE *fd){
  *@return 返回统计后的记录结果的内存指针，需要外部delete
  */
 int HuffmanWrite2File(unsigned char *ptr, int size, char *outFileName, Element ht[]){
+    FILE *fd = fopen(outFileName, "wb");
+    if (!fd) {
+        fprintf(stderr, "failed to open file %s\n", outFileName);
+        exit(1);
+    }
     for(int i = 0; i < size; i++){
         int *symbolList = FindSymbolList(ptr[i], ht);
-        OutBinaryData(symbolList, ht, NULL);
+        OutBinaryData(symbolList, ht, fd);
         delete [] symbolList;
     }
+    fclose(fd);
 }
 
 int main(int argc, char *argv[])
@@ -231,13 +248,13 @@ int main(int argc, char *argv[])
    
     Element *hufftree=new Element[SYMBOLES*2-1];//动态创建数组
     HuffTree(hufftree,freqCountBuf,SYMBOLES);
-    Print(hufftree,SYMBOLES*2-1);
-    std::cout << "*************************************" << std::endl;
+    //Print(hufftree,SYMBOLES*2-1);
+    //std::cout << "*************************************" << std::endl;
 
     // int *symbolList = FindSymbolList('a', hufftree);
     // OutBinaryData(symbolList, hufftree, NULL);
 
-    HuffmanWrite2File(ptr, fileSize, NULL, hufftree);
+    HuffmanWrite2File(ptr, fileSize, argv[2], hufftree);
     //使用过的内存需要释放
     // delete [] symbolList;
     delete [] hufftree;
