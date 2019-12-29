@@ -184,7 +184,7 @@ int *FindSymbolList(unsigned char symbol, Element ht[]){
  *@fd  输出的文件描述符
  *@return 返回统计后的记录结果的内存指针，需要外部delete
  */
-unsigned char *OutBinaryData(int *symbolList, Element ht[], FILE *fd, int lastFlag){
+int OutBinaryData(int *symbolList, Element ht[], FILE *fd, int lastFlag){
     int i = 0;
     for(i = 0; symbolList[i] != -1; i++){       // 找到最后一个节点
         if(i > 255){
@@ -225,7 +225,7 @@ unsigned char *OutBinaryData(int *symbolList, Element ht[], FILE *fd, int lastFl
         }
     }
     //std::cout << std::endl;
-    return NULL;
+    return 0;
 }
 
 /*@description 将ptr指向的内容根据ht Huffman树进行编码输出到outFileName文件中
@@ -328,9 +328,11 @@ int main(int argc, char *argv[])
     if(strcmp(argv[1], "A") == 0){   // 压缩
         unsigned char *ptr = NULL;
         size_t fileSize = read_file(argv[2], &ptr);
+        std:: << "输入文件大小： " << fileSize << std::endl;
         int *freqCountBuf = FreqCount(ptr, fileSize);
         Element *hufftree=new Element[SYMBOLES*2-1];//动态创建数组
         HuffTree(hufftree,freqCountBuf,SYMBOLES);
+        //Print(hufftree,SYMBOLES*2-1);
         HuffmanWrite2File(ptr, fileSize, argv[3], hufftree);
         //使用过的内存需要释放
         delete [] hufftree;
@@ -345,7 +347,6 @@ int main(int argc, char *argv[])
         Element *dehufftree = new Element[SYMBOLES*2-1];//动态创建数组
         HuffTree(dehufftree,deFreqCount,SYMBOLES);
         int srcFileSize = *(int*)(ptrdecode + (SYMBOLES * sizeof(int)));
-        //Print(dehufftree,SYMBOLES*2-1);
         DecodeHuffmanFile2File(ptrdecode + (SYMBOLES+1)*sizeof(int), decodefileSize - sizeof(int)*(SYMBOLES+1), srcFileSize, argv[3], dehufftree);
         //使用过的内存需要释放
         delete [] dehufftree;
