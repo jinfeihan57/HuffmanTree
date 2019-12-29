@@ -266,7 +266,7 @@ int HuffmanWrite2File(unsigned char *ptr, int size, char *outFileName, Element h
  *@return 
  */
 int DecodeHuffmanFile2File(unsigned char *ptr, int insize, int outFileSize, char *outFileName, Element ht[]){
-    FILE *fd = fopen(outFileName, "wb+");
+    FILE *fd = fopen(outFileName, "wb");
     if (!fd) {
         fprintf(stderr, "failed to open file %s\n", outFileName);
         exit(1);
