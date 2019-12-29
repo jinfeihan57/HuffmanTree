@@ -1,17 +1,12 @@
 #include <stdio.h>
-
-struct HuffmanNode {
-    int freqCount;
-    unsigned char symbol;
-    HuffmanNode *left_node;
-    HuffmanNode *right_node;
-};
 #include <iostream>
 #include <iomanip>
 #include <stdlib.h>
 #include <cstring>
+
 #define SYMBOLES  256
 using namespace std;
+
 struct Element
 {
     int parent;//双亲
@@ -19,6 +14,7 @@ struct Element
     int rchild;//右孩子
     int weight;//权值
 };
+
 /*@description 找到现有树中最小权重的节点的下标
  *@a  存储Huffman树的数组
  *@n  树中各个symbol的个数
@@ -55,6 +51,7 @@ void Select(Element a[],int n,int &s1,int &s2)  // 传入引用
             s2=j;
     }
 }
+
 /*@description 建立Huffman树
  *@ht 存储Huffman树的数组
  *@w  树中各个symbol的个数
@@ -85,6 +82,7 @@ void HuffTree(Element ht[], int w[], int n)
         ht[k].lchild=ht[i1].weight < ht[i2].weight ? i1 : i2;
     }
 }
+
 //输出哈夫曼树
 void Print(Element ht[],int n)
 {
@@ -182,7 +180,8 @@ int *FindSymbolList(unsigned char symbol, Element ht[]){
  *@symbolList 记录symbol在ht中的节点路径的数组
  *@ht  Huffman树
  *@fd  输出的文件描述符
- *@return 返回统计后的记录结果的内存指针，需要外部delete
+ *@lastFlag  最后一个字符压缩标志位
+ *@return 
  */
 int OutBinaryData(int *symbolList, Element ht[], FILE *fd, int lastFlag){
     int i = 0;
@@ -260,7 +259,8 @@ int HuffmanWrite2File(unsigned char *ptr, int size, char *outFileName, Element h
 
 /*@description 解编码的Huffman文件
  *@ptr Huffman编码压缩文件的内存空间（仅仅包好Huffman码，不包含概率表）
- *@size  解压后的文件的大小
+ *@insize  解压前的文件的大小
+ *@outFileSize  解压后的文件的大小
  *@outFileName  解压缩后输出的文件名
  *@ht  Huffman树（由概率表创建）
  *@return 
@@ -371,5 +371,4 @@ int main(int argc, char *argv[])
     }
 
     return 0;
-
 }
