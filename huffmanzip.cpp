@@ -309,6 +309,19 @@ int DecodeHuffmanFile2File(unsigned char *ptr, int insize, int outFileSize, char
     return 0;
 }
 
+/*@description 获取文件大小
+ *@fileName 文件名
+ *@return 返回文件的大小
+ */
+int GetFileSize(char *fileName){
+    FILE *fp = fopen(fileName,"r");
+    if(!fp) return -1;
+    fseek(fp, 0L, SEEK_END);
+    int size = ftell(fp);
+    fclose(fp);
+    return size;
+}
+
 int main(int argc, char *argv[])
 {
     if(argc != 4){      // 判断入参数目
@@ -328,12 +341,13 @@ int main(int argc, char *argv[])
     if(strcmp(argv[1], "A") == 0){   // 压缩
         unsigned char *ptr = NULL;
         size_t fileSize = read_file(argv[2], &ptr);
-        std:: << "输入文件大小： " << fileSize << std::endl;
+        std::cout << "待压缩文件大小： " << fileSize << std::endl;
         int *freqCountBuf = FreqCount(ptr, fileSize);
         Element *hufftree=new Element[SYMBOLES*2-1];//动态创建数组
         HuffTree(hufftree,freqCountBuf,SYMBOLES);
         //Print(hufftree,SYMBOLES*2-1);
         HuffmanWrite2File(ptr, fileSize, argv[3], hufftree);
+        std::cout << "压缩后文件大小： " << GetFileSize(argv[3]) << std::endl;
         //使用过的内存需要释放
         delete [] hufftree;
         free(ptr);
@@ -342,12 +356,14 @@ int main(int argc, char *argv[])
     if(strcmp(argv[1], "X") == 0){     //解压缩
         unsigned char *ptrdecode = NULL;
         size_t decodefileSize = read_file(argv[2], &ptrdecode);
+        std::cout << "待解压文件大小： " << decodefileSize << std::endl;
         int *deFreqCount = new int[SYMBOLES];
         memcpy(deFreqCount, ptrdecode, (SYMBOLES*sizeof(int)));
         Element *dehufftree = new Element[SYMBOLES*2-1];//动态创建数组
         HuffTree(dehufftree,deFreqCount,SYMBOLES);
         int srcFileSize = *(int*)(ptrdecode + (SYMBOLES * sizeof(int)));
         DecodeHuffmanFile2File(ptrdecode + (SYMBOLES+1)*sizeof(int), decodefileSize - sizeof(int)*(SYMBOLES+1), srcFileSize, argv[3], dehufftree);
+        std::cout << "解压后文件大小： " << GetFileSize(argv[3]) << std::endl;
         //使用过的内存需要释放
         delete [] dehufftree;
         free(ptrdecode);
