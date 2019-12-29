@@ -241,6 +241,10 @@ int HuffmanWrite2File(unsigned char *ptr, int size, char *outFileName, Element h
         fprintf(stderr, "failed to open file %s\n", outFileName);
         exit(1);
     }
+    for(int j = 0; j < SYMBOLES; j++){
+        fwrite(&(ht[j].weight), 1, sizeof(int), fd);    // 写入概率表
+    }
+    fwrite(&size, 1, sizeof(int), fd);          // 写入文件大小
     for(int i = 0; i < size; i++){
         int *symbolList = FindSymbolList(ptr[i], ht);
         if(i != size - 1){
@@ -307,29 +311,48 @@ int DecodeHuffmanFile2File(unsigned char *ptr, int insize, int outFileSize, char
 
 int main(int argc, char *argv[])
 {
-    unsigned char *ptr = NULL;
-    size_t fileSize = read_file(argv[1], &ptr);
-    int *freqCountBuf = FreqCount(ptr, fileSize);
-   
-    Element *hufftree=new Element[SYMBOLES*2-1];//动态创建数组
-    HuffTree(hufftree,freqCountBuf,SYMBOLES);
-    //Print(hufftree,SYMBOLES*2-1);
-    //std::cout << "*************************************" << std::endl;
+    if(argc != 4){      // 判断入参数目
+        std::cout << "参数错误" << std::endl;
+        std::cout << "使用方法如下：" << std::endl;
+        std::cout << "压缩命令 ：SZip A Test.Haf 1.doc" << std::endl;
+        std::cout << "解压缩命令：SZip X Test.Haf 2.doc" << std::endl;
+        return 0;
+    }
+    if((strcmp(argv[1], "X") != 0) && (strcmp(argv[1], "A") != 0)){     // 判断参数是否合法 解压 压缩 其他为错误
+        std::cout << "参数错误" << std::endl;
+        std::cout << "使用方法如下：" << std::endl;
+        std::cout << "压缩命令 ：SZip A Test.Haf 1.doc" << std::endl;
+        std::cout << "解压缩命令：SZip X Test.Haf 2.doc" << std::endl;
+        return -1;
+    }
+    if(strcmp(argv[1], "A") == 0){   // 压缩
+        unsigned char *ptr = NULL;
+        size_t fileSize = read_file(argv[2], &ptr);
+        int *freqCountBuf = FreqCount(ptr, fileSize);
+        Element *hufftree=new Element[SYMBOLES*2-1];//动态创建数组
+        HuffTree(hufftree,freqCountBuf,SYMBOLES);
+        HuffmanWrite2File(ptr, fileSize, argv[3], hufftree);
+        //使用过的内存需要释放
+        delete [] hufftree;
+        free(ptr);
+        free(freqCountBuf);
+    }
+    if(strcmp(argv[1], "X") == 0){     //解压缩
+        unsigned char *ptrdecode = NULL;
+        size_t decodefileSize = read_file(argv[2], &ptrdecode);
+        int *deFreqCount = new int[SYMBOLES];
+        memcpy(deFreqCount, ptrdecode, (SYMBOLES*sizeof(int)));
+        Element *dehufftree = new Element[SYMBOLES*2-1];//动态创建数组
+        HuffTree(dehufftree,deFreqCount,SYMBOLES);
+        int srcFileSize = *(int*)(ptrdecode + (SYMBOLES * sizeof(int)));
+        //Print(dehufftree,SYMBOLES*2-1);
+        DecodeHuffmanFile2File(ptrdecode + (SYMBOLES+1)*sizeof(int), decodefileSize - sizeof(int)*(SYMBOLES+1), srcFileSize, argv[3], dehufftree);
+        //使用过的内存需要释放
+        delete [] dehufftree;
+        free(ptrdecode);
+        delete [] (deFreqCount);
+    }
 
-    // int *symbolList = FindSymbolList('a', hufftree);
-    // OutBinaryData(symbolList, hufftree, NULL);
-
-    HuffmanWrite2File(ptr, fileSize, argv[2], hufftree);
-
-    unsigned char *ptrdecode = NULL;
-    size_t decodefileSize = read_file(argv[2], &ptrdecode);
-
-    DecodeHuffmanFile2File(ptrdecode, decodefileSize, fileSize, "xxxx.txt", hufftree);
-    //使用过的内存需要释放
-    // delete [] symbolList;
-    delete [] hufftree;
-    free(ptr);
-    free(freqCountBuf);
     return 0;
 
 }

@@ -1,5 +1,8 @@
-# HuffmanTree
- 
-本程序读取指定文件中的所有字符，并根据文件内容建立Huffman树
-使用g++ huffmanzip.cpp 命令编译可执行程序。
-执行程序时需要跟一个输入文件名和一个输出文件，如： ./a.out bbbbb.txt outfilename
+# HuffmanTree 
+    采用Huffman对文件进行编码压缩和解码
+
+# 编译可执行程序:
+    g++ huffmanzip.cpp -o SZip
+# 使用方法：
+    压缩命令 ：SZip A Test.Haf 1.doc
+    解压缩命令：SZip X Test.Haf 2.doc
