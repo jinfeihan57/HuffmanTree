@@ -235,7 +235,7 @@ int OutBinaryData(int *symbolList, Element ht[], FILE *fd, int lastFlag){
  *@return 
  */
 int HuffmanWrite2File(unsigned char *ptr, int size, char *outFileName, Element ht[]){
-    FILE *fd = fopen(outFileName, "wb+");
+    FILE *fd = fopen(outFileName, "wb");
     if (!fd) {
         fprintf(stderr, "failed to open file %s\n", outFileName);
         exit(1);
@@ -327,15 +327,15 @@ int main(int argc, char *argv[])
     if(argc != 4){      // 判断入参数目
         std::cout << "参数错误" << std::endl;
         std::cout << "使用方法如下：" << std::endl;
-        std::cout << "压缩命令 ：SZip A Test.Haf 1.doc" << std::endl;
-        std::cout << "解压缩命令：SZip X Test.Haf 2.doc" << std::endl;
+        std::cout << "压缩命令 ：SZip A infile huffmanfile" << std::endl;
+        std::cout << "解压缩命令：SZip X huffmanfile outfile" << std::endl;
         return 0;
     }
     if((strcmp(argv[1], "X") != 0) && (strcmp(argv[1], "A") != 0)){     // 判断参数是否合法 解压 压缩 其他为错误
         std::cout << "参数错误" << std::endl;
         std::cout << "使用方法如下：" << std::endl;
-        std::cout << "压缩命令 ：SZip A Test.Haf 1.doc" << std::endl;
-        std::cout << "解压缩命令：SZip X Test.Haf 2.doc" << std::endl;
+        std::cout << "压缩命令 ：SZip A infile huffmanfile" << std::endl;
+        std::cout << "解压缩命令：SZip X huffmanfile outfile" << std::endl;
         return -1;
     }
     if(strcmp(argv[1], "A") == 0){   // 压缩
@@ -343,9 +343,9 @@ int main(int argc, char *argv[])
         size_t fileSize = read_file(argv[2], &ptr);
         std::cout << "待压缩文件大小： " << fileSize << std::endl;
         int *freqCountBuf = FreqCount(ptr, fileSize);
-        Element *hufftree=new Element[SYMBOLES*2-1];//动态创建数组
+        Element *hufftree = new Element[SYMBOLES*2-1];//动态创建数组
         HuffTree(hufftree,freqCountBuf,SYMBOLES);
-        //Print(hufftree,SYMBOLES*2-1);
+        //Print(hufftree,SYMBOLES*2-1);     // Huffman树打印
         HuffmanWrite2File(ptr, fileSize, argv[3], hufftree);
         std::cout << "压缩后文件大小： " << GetFileSize(argv[3]) << std::endl;
         //使用过的内存需要释放
